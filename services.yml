@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "TO DO: Write better description"
+Resources:
+  S3BucketSource:
+    Type: "AWS::S3::Bucket"
+    DeletionPolicy: Delete
+    Properties: 
+      BucketName: source-s3-bucket-data-lake
+      PublicAccessBlockConfiguration: 
+        BlockPublicAcls: FALSE
+      Tags: [
+        {"Key": "source-data-lake"}
+      ]
+
+  S3BucketDest:
+    Type: "AWS::S3::Bucket"
+    DeletionPolicy: Delete
+    Properties: 
+      BucketName: dest-s3-bucket-date-warehouse
+      PublicAccessBlockConfiguration: 
+        BlockPublicAcls: FALSE
+      Tags: [
+        {"Key": "dest-data-lake"}
+      ]
