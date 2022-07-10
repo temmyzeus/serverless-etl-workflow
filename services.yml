@@ -24,7 +24,7 @@ Resources:
         {"Key": "dest-data-lake"}
       ]
 
-  S3Policy:
+  SourceS3Policy:
     Type: "AWS::S3::BucketPolicy"
     Properties:
       Bucket: source-data-lake
@@ -40,3 +40,17 @@ Resources:
             - 'arn:aws:s3:::source-data-lake'
             - 'arn:aws:s3:::source-data-lake/*'
 
+  DestS3Policy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: dest-date-warehouse
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Action:
+            - 's3:PutObject'
+          Effect: Allow
+          Principal: '*'
+          Resource:
+            - 'arn:aws:s3:::dest-date-warehouse'
+            - 'arn:aws:s3:::dest-date-warehouse/*'
