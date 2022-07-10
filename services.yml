@@ -1,24 +1,40 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "TO DO: Write better description"
+Description: "Serverless ETL Ingestion Resource Setup"
 Resources:
   S3BucketSource:
     Type: "AWS::S3::Bucket"
     DeletionPolicy: Delete
     Properties: 
-      BucketName: source-s3-bucket-data-lake
+      BucketName: source-data-lake
       PublicAccessBlockConfiguration: 
-        BlockPublicAcls: FALSE
+          BlockPublicAcls: TRUE
       Tags: [
         {"Key": "source-data-lake"}
       ]
+      AccessControl: BucketOwnerFullControl
 
   S3BucketDest:
     Type: "AWS::S3::Bucket"
     DeletionPolicy: Delete
     Properties: 
-      BucketName: dest-s3-bucket-date-warehouse
+      BucketName: dest-date-warehouse
       PublicAccessBlockConfiguration: 
-        BlockPublicAcls: FALSE
+        BlockPublicAcls: TRUE
       Tags: [
         {"Key": "dest-data-lake"}
       ]
+
+  S3Policy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: source-data-lake
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Action:
+            - 's3:GetObject'
+          Effect: Allow
+          Principal: '*'
+          Resource:
+            - 'arn:aws:s3:::source-data-lake/*'
+
