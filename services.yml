@@ -33,8 +33,10 @@ Resources:
         Statement:
         - Action:
             - 's3:GetObject'
+            - 's3:ListBucket'
           Effect: Allow
           Principal: '*'
           Resource:
+            - 'arn:aws:s3:::source-data-lake'
             - 'arn:aws:s3:::source-data-lake/*'
 
