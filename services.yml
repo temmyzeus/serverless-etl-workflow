@@ -49,6 +49,7 @@ Resources:
         Statement:
         - Action:
             - 's3:PutObject'
+            - 's3:GetObject'
           Effect: Allow
           Principal: '*'
           Resource:
