@@ -4,5 +4,12 @@ Resources:
   LambdaMonitorS3Bucket:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: ToParquetLambda
       Handler: lambda_functions.trigger_handler
       Runtime: python3.7
+      MemorySize: 1024
+      Timeout: 180
+      Architectures: 
+        - x86_64
+      Layers:
+        - arn:aws:lambda:us-west-2:336392948345:layer:AWSDataWrangler-Python37:7
