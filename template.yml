@@ -1,10 +1,12 @@
 AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
+
 Resources:
   LambdaMonitorS3Bucket:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: ToParquetLambda
+      CodeUri: lambda/
       Handler: lambda_functions.trigger_handler
       Runtime: python3.7
       MemorySize: 1024
@@ -13,3 +15,12 @@ Resources:
         - x86_64
       Layers:
         - arn:aws:lambda:us-west-2:336392948345:layer:AWSDataWrangler-Python37:7
+      Policies:
+      - Statement:
+        - Sid: ToParquetSAMRole
+          Effect: Allow
+          Action:
+          - 'glue:*'
+          - 's3:*'
+          Resource: '*'
+
