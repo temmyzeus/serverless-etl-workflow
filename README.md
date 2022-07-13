@@ -14,3 +14,5 @@ A Project on Serveless workflow with AWS Glue, S3 &amp; Lambda
 
 #### Note: Manually add Trigger after bucket creation, because AWS SAM doesn't allow referencing existing buckets outside the template(i.e resource not created in the template).
 #### Note: Copy contents in events/events.json and use as test event, p.s would not work if object key doesn't exist in bucket so change to something that exists in yours.
+
+### Note: Ensure Database already exists in the Glue Data Catalog
