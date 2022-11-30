@@ -1,26 +1,104 @@
-AWSTemplateFormatVersion : '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Event driven serverless ETL
 Transform: AWS::Serverless-2016-10-31
 
-Resources:
-  LambdaMonitorS3Bucket:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: ToParquetLambda
-      CodeUri: lambda/
-      Handler: lambda_functions.trigger_handler
-      Runtime: python3.7
-      MemorySize: 1024
-      Timeout: 180
-      Architectures: 
-        - x86_64
-      Layers:
-        - arn:aws:lambda:us-west-2:336392948345:layer:AWSDataWrangler-Python37:7
-      Policies:
-      - Statement:
-        - Sid: ToParquetSAMRole
-          Effect: Allow
-          Action:
-          - 'glue:*'
-          - 's3:*'
-          Resource: '*'
+Parameters:
+  s3BucketName:
+    Description: "Name of S3 Bucket"
+    Type: String
+    MinLength: 3
+    MaxLength: 63
+    # AllowedPattern:
 
+  queueName:
+    Description: "Name of SQS Queue"
+    Type: String
+    MaxLength: 80
+
+Resources:
+  s3Bucket:
+    Type: AWS::S3::Bucket
+    DependsOn: sqsQueue
+    Properties:
+      BucketName: !Ref s3BucketName
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Queue: !GetAtt sqsQueue.Arn
+            Event: "s3:ObjectCreated:Put"
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: raw/
+                  - Name: suffix
+                    Value: .csv
+      Tags:
+        - Key: Project
+          Value: event-driven-serverless-etl
+
+  s3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref s3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: Statement1
+            Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action: s3:*
+            Resource: !Sub arn:aws:s3:::${s3BucketName}
+
+  sqsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Ref queueName
+      DelaySeconds: 0
+      MaximumMessageSize: 262144
+      MessageRetentionPeriod: 345600 # 4 days
+      ReceiveMessageWaitTimeSeconds: 0
+      VisibilityTimeout: 30
+      Tags:
+        - Key: Project
+          Value: event-driven-serverless-etl
+
+  sqsQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref sqsQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Id: Policy1669743288943
+        Statement:
+          - Sid: Stmt1669743286484
+            Effect: Allow
+            Principal: "*"
+            Action: sqs:*
+            Resource: !Sub arn:aws:sqs:us-west-2:${AWS::AccountId}:${queueName}
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Sub arn:aws:s3:::${s3BucketName}
+
+  # LambdaMonitorS3Bucket:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     FunctionName: ToParquetLambda
+  #     CodeUri: lambda/
+  #     Handler: lambda_functions.trigger_handler
+  #     Runtime: python3.7
+  #     MemorySize: 1024
+  #     Timeout: 180
+  #     Architectures:
+  #       - x86_64
+  #     Layers:
+  #       - arn:aws:lambda:us-west-2:336392948345:layer:AWSDataWrangler-Python37:7
+  #     Policies:
+  #     - Statement:
+  #       - Sid: ToParquetSAMRole
+  #         Effect: Allow
+  #         Action:
+  #         - 'glue:*'
+  #         - 's3:*'
+  #         Resource: '*'
