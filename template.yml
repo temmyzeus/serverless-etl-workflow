@@ -10,6 +10,13 @@ Parameters:
     MaxLength: 63
     # AllowedPattern:
 
+  lambdaBucketName:
+    Description: "Name of S3 Bucket containing code for Lambda"
+    Type: String
+    MinLength: 3
+    MaxLength: 63
+    Default: lambda-code-bucket-event-driven-etl
+
   queueName:
     Description: "Name of SQS Queue"
     Type: String
@@ -32,6 +39,14 @@ Resources:
                     Value: raw/
                   - Name: suffix
                     Value: .csv
+      Tags:
+        - Key: Project
+          Value: event-driven-serverless-etl
+
+  lambdaCodeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref lambdaBucketName
       Tags:
         - Key: Project
           Value: event-driven-serverless-etl
@@ -81,24 +96,70 @@ Resources:
               ArnEquals:
                 aws:SourceArn: !Sub arn:aws:s3:::${s3BucketName}
 
-  # LambdaMonitorS3Bucket:
-  #   Type: AWS::Serverless::Function
-  #   Properties:
-  #     FunctionName: ToParquetLambda
-  #     CodeUri: lambda/
-  #     Handler: lambda_functions.trigger_handler
-  #     Runtime: python3.7
-  #     MemorySize: 1024
-  #     Timeout: 180
-  #     Architectures:
-  #       - x86_64
-  #     Layers:
-  #       - arn:aws:lambda:us-west-2:336392948345:layer:AWSDataWrangler-Python37:7
-  #     Policies:
-  #     - Statement:
-  #       - Sid: ToParquetSAMRole
-  #         Effect: Allow
-  #         Action:
-  #         - 'glue:*'
-  #         - 's3:*'
-  #         Resource: '*'
+  lambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyName: "lambda-sqs-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  lambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: "This performa some operation on lambda"
+      FunctionName: Convert-Data-Files
+      Handler: lambda_functions.trigger_handler
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Runtime: python3.9
+      Timeout: 100
+      Role: !GetAtt lambdaRole.Arn
+      Code:
+        S3Bucket: !Ref lambdaCodeBucket
+        S3Key: lambda.zip
+      Tags:
+        - Key: Project
+          Value: event-driven-serverless-etl
+
+    # LambdaMonitorS3Bucket:
+    #   Type: AWS::Serverless::Function
+    #   Properties:
+    #     FunctionName: ToParquetLambda
+    #     CodeUri: lambda/
+    #     Handler: lambda_functions.trigger_handler
+    #     Runtime: python3.7
+    #     MemorySize: 1024
+    #     Timeout: 180
+    #     Architectures:
+    #       - x86_64
+    #     Layers:
+    #       - arn:aws:lambda:us-west-2:336392948345:layer:AWSDataWrangler-Python37:7
+    #     Policies:
+    #     - Statement:
+    #       - Sid: ToParquetSAMRole
+    #         Effect: Allow
+    #         Action:
+    #         - 'glue:*'
+    #         - 's3:*'
+    #         Resource: '*'
