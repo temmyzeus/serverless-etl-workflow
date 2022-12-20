@@ -22,6 +22,12 @@ Parameters:
     Type: String
     MaxLength: 80
 
+  functionName:
+    Description: "Name of the Lambda function"
+    Type: String
+    MinLength: 5
+    Default: Convert-Data-Files
+
 Resources:
   s3Bucket:
     Type: AWS::S3::Bucket
@@ -73,7 +79,7 @@ Resources:
       MaximumMessageSize: 262144
       MessageRetentionPeriod: 345600 # 4 days
       ReceiveMessageWaitTimeSeconds: 0
-      VisibilityTimeout: 30
+      VisibilityTimeout: 80
       Tags:
         - Key: Project
           Value: event-driven-serverless-etl
@@ -122,18 +128,39 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: "*"
+        - PolicyName: "lambda-cloudwatch-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  !Join
+                    - ""
+                    - - "arn:aws:logs:"
+                      - !Sub "${AWS::Region}:"
+                      - !Sub "${AWS::AccountId}:"
+                      - "log-group:/aws/lambda/"
+                      - !Ref functionName
+                # Resource: !Sub "arn:aws:logs:{AWS::Region}:{AWS::AccountId}:log-group:/aws/lambda/{!Ref lambdaFunction}:*"
 
   lambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
       Description: "This performa some operation on lambda"
-      FunctionName: Convert-Data-Files
-      Handler: lambda_functions.trigger_handler
+      FunctionName: !Ref functionName
+      Handler: lambda.lambda_functions.trigger_handler
       Architectures:
         - x86_64
       MemorySize: 128
       Runtime: python3.9
-      Timeout: 100
+      Timeout: 60
       Role: !GetAtt lambdaRole.Arn
       Code:
         S3Bucket: !Ref lambdaCodeBucket
@@ -141,25 +168,13 @@ Resources:
       Tags:
         - Key: Project
           Value: event-driven-serverless-etl
-
-    # LambdaMonitorS3Bucket:
-    #   Type: AWS::Serverless::Function
-    #   Properties:
-    #     FunctionName: ToParquetLambda
-    #     CodeUri: lambda/
-    #     Handler: lambda_functions.trigger_handler
-    #     Runtime: python3.7
-    #     MemorySize: 1024
-    #     Timeout: 180
-    #     Architectures:
-    #       - x86_64
-    #     Layers:
-    #       - arn:aws:lambda:us-west-2:336392948345:layer:AWSDataWrangler-Python37:7
-    #     Policies:
-    #     - Statement:
-    #       - Sid: ToParquetSAMRole
-    #         Effect: Allow
-    #         Action:
-    #         - 'glue:*'
-    #         - 's3:*'
-    #         Resource: '*'
+  
+  sqsToLambdaEventSourceMap:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties: 
+      # Seems it can be used for multiple sources
+      BatchSize: 10
+      Enabled: false
+      EventSourceArn: !GetAtt sqsQueue.Arn
+      FunctionName: !Ref lambdaFunction
+      MaximumBatchingWindowInSeconds: 300 # 5 minutes
