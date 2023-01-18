@@ -163,8 +163,7 @@ Resources:
                 Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource:
-                  !Join
+                Resource: !Join
                     - ""
                     - - "arn:aws:logs:"
                       - !Sub "${AWS::Region}:"
@@ -172,6 +171,22 @@ Resources:
                       - "log-group:/aws/lambda/"
                       - !Ref functionName
                 # Resource: !Sub "arn:aws:logs:{AWS::Region}:{AWS::AccountId}:log-group:/aws/lambda/{!Ref lambdaFunction}:*"
+        - PolicyName: "lambda-s3-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !GetAtt s3Bucket.Arn
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: !Join
+                  - ""
+                  - - !GetAtt s3Bucket.Arn
+                    - "/*"
 
   lambdaFunction:
     Type: AWS::Lambda::Function
