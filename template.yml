@@ -28,6 +28,11 @@ Parameters:
     MinLength: 5
     Default: Convert-Data-Files
 
+  targetS3BucketPath:
+    Description: "Target S3 Bucket path to load data to"
+    Type: String
+    MinLength: 5
+
 Resources:
   s3Bucket:
     Type: AWS::S3::Bucket
@@ -165,6 +170,9 @@ Resources:
       Code:
         S3Bucket: !Ref lambdaCodeBucket
         S3Key: lambda.zip
+      Environment:
+        Variables:
+          TARGET_S3_BUCKET_PATH: !Ref targetS3BucketPath
       Tags:
         - Key: Project
           Value: event-driven-serverless-etl
