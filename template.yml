@@ -50,6 +50,24 @@ Resources:
                     Value: raw/
                   - Name: suffix
                     Value: .csv
+          - Queue: !GetAtt sqsQueue.Arn
+            Event: "s3:ObjectCreated:Put"
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: raw/
+                  - Name: suffix
+                    Value: .json
+          - Queue: !GetAtt sqsQueue.Arn
+            Event: "s3:ObjectCreated:Put"
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: raw/
+                  - Name: suffix
+                    Value: .xlsx
       Tags:
         - Key: Project
           Value: event-driven-serverless-etl
