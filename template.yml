@@ -164,12 +164,12 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: !Join
-                    - ""
-                    - - "arn:aws:logs:"
-                      - !Sub "${AWS::Region}:"
-                      - !Sub "${AWS::AccountId}:"
-                      - "log-group:/aws/lambda/"
-                      - !Ref functionName
+                  - ""
+                  - - "arn:aws:logs:"
+                    - !Sub "${AWS::Region}:"
+                    - !Sub "${AWS::AccountId}:"
+                    - "log-group:/aws/lambda/"
+                    - !Ref functionName
                 # Resource: !Sub "arn:aws:logs:{AWS::Region}:{AWS::AccountId}:log-group:/aws/lambda/{!Ref lambdaFunction}:*"
         - PolicyName: "lambda-s3-policy"
           PolicyDocument:
@@ -196,7 +196,9 @@ Resources:
       Handler: lambda.lambda_functions.trigger_handler
       Architectures:
         - x86_64
-      MemorySize: 128
+      MemorySize: 3008
+      EphemeralStorage:
+        Size: 3072
       Runtime: python3.9
       Timeout: 60
       Role: !GetAtt lambdaRole.Arn
@@ -206,16 +208,18 @@ Resources:
       Environment:
         Variables:
           TARGET_S3_BUCKET_PATH: !Ref targetS3BucketPath
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:336392948345:layer:AWSSDKPandas-Python39:2"
       Tags:
         - Key: Project
           Value: event-driven-serverless-etl
-  
+
   sqsToLambdaEventSourceMap:
     Type: AWS::Lambda::EventSourceMapping
-    Properties: 
+    Properties:
       # Seems it can be used for multiple sources
-      BatchSize: 10
-      Enabled: false
+      BatchSize: 200
+      Enabled: true
       EventSourceArn: !GetAtt sqsQueue.Arn
       FunctionName: !Ref lambdaFunction
       MaximumBatchingWindowInSeconds: 300 # 5 minutes
