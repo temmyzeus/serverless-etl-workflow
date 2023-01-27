@@ -33,6 +33,11 @@ Parameters:
     Type: String
     MinLength: 5
 
+  deadLetterQueueName:
+    Description: "Name of SQS Dead Letter Queue"
+    Type: String
+    MaxLength: 80
+
 Resources:
   s3Bucket:
     Type: AWS::S3::Bucket
@@ -103,6 +108,9 @@ Resources:
       MessageRetentionPeriod: 345600 # 4 days
       ReceiveMessageWaitTimeSeconds: 0
       VisibilityTimeout: 80
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt sqsDlq.Arn
+        maxReceiveCount: 10
       Tags:
         - Key: Project
           Value: event-driven-serverless-etl
@@ -223,3 +231,19 @@ Resources:
       EventSourceArn: !GetAtt sqsQueue.Arn
       FunctionName: !Ref lambdaFunction
       MaximumBatchingWindowInSeconds: 300 # 5 minutes
+
+  sqsDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Ref deadLetterQueueName
+      DelaySeconds: 0
+      MaximumMessageSize: 262144
+      MessageRetentionPeriod: 345600 # 4 days
+      ReceiveMessageWaitTimeSeconds: 0
+      VisibilityTimeout: 80
+      # RedriveAllowPolicy:
+      #   - redrivePermissons: "allowAll"
+      #     sourceQueueArns: !GetAtt sqsQueue.Arn
+      Tags:
+        - Key: Project
+          Value: event-driven-serverless-etl
